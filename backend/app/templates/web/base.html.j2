@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ReportForge{% endblock %} · ReportForge</title>
+<style>
+  :root {
+    --accent: #B22222; --ink: #222; --muted: #666; --line: #ddd; --bg: #faf8f6;
+    --critical: #7B0C0C; --high: #B22222; --medium: #C78F00; --low: #2E6D2E; --info: #4A6E8E;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink);
+         margin: 0; background: var(--bg); line-height: 1.55; font-size: 14px; }
+  header { background: #1b1b1f; color: #eee; padding: 14px 24px; display: flex;
+           align-items: baseline; gap: 18px; }
+  header a { color: var(--accent); text-decoration: none; font-weight: 700; font-size: 15px; }
+  header .tagline { color: #999; font-size: 12px; }
+  header nav { margin-left: auto; }
+  header nav a { color: #ccc; font-weight: 400; font-size: 13px; margin-left: 14px; }
+  header nav a:hover { color: #fff; }
+  main { max-width: 1000px; margin: 28px auto 60px; padding: 0 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 8px; border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+  h3 { font-size: 15px; margin: 16px 0 6px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; font-size: 13px; }
+  th { background: #f1efec; }
+  tr:hover td { background: #faf6f0; }
+  a { color: var(--accent); }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+           font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border: 1px solid currentColor; }
+  .sev-critical { color: var(--critical); } .sev-high { color: var(--high); }
+  .sev-medium { color: var(--medium); } .sev-low { color: var(--low); } .sev-info { color: var(--info); }
+  .btn { display: inline-block; padding: 6px 14px; border-radius: 4px; font-size: 13px;
+         text-decoration: none; border: 1px solid var(--accent); color: var(--accent); background: #fff; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.small { padding: 3px 9px; font-size: 12px; }
+  .btn.danger { border-color: #a33; color: #a33; }
+  input[type=text], textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px;
+    font: inherit; background: #fff; }
+  textarea { font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+          margin: 12px 0 3px; text-transform: uppercase; letter-spacing: .05em; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; margin: 14px 0; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .note { background: #f0f7f0; border: 1px solid #b6d4b6; border-radius: 4px; color: #1e5a1e;
+          padding: 8px 12px; font-size: 13px; margin: 10px 0; }
+  .danger { color: #a33; }
+  .flex { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  code { background: #f1efec; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .ev { white-space: pre-wrap; word-break: break-all; background: #f6f4f1; border: 1px solid var(--line);
+        padding: 8px 10px; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; }
+  .finding-row td:first-child { max-width: 420px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/">ReportForge</a>
+  <span class="tagline">security report generator</span>
+  <nav>
+    <a href="/reports/new">+ New report</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

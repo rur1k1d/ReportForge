@@ -1,0 +1,38 @@
+{% extends "base.html.j2" %}
+{% block title %}New report{% endblock %}
+{% block content %}
+<h1>New report</h1>
+
+<form method="post" action="/reports/new">
+  <div class="grid2">
+    <div>
+      <label>Title</label>
+      <input type="text" name="title" placeholder="Pentest Report - Client Corp" required>
+    </div>
+    <div>
+      <label>Client</label>
+      <input type="text" name="client" placeholder="Client Corp">
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <label>Template</label>
+      <select name="template_type">
+        <option value="pentest">Pentest Report (anchor)</option>
+        <option value="va">Vulnerability Assessment</option>
+      </select>
+    </div>
+    <div>
+      <label>Version</label>
+      <input type="text" name="version" value="v0.1">
+    </div>
+  </div>
+  <label>Scope</label>
+  <input type="text" name="scope" placeholder="https://app.example.com/ (web app, in scope)">
+
+  <div style="margin-top:20px;" class="flex">
+    <button class="btn primary" type="submit">Create report</button>
+    <a class="btn" href="/">Cancel</a>
+  </div>
+</form>
+{% endblock %}

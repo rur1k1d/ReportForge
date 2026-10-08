@@ -1,0 +1,50 @@
+{% extends "base.html.j2" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+<p class="muted">Local report queue. Create, import findings, export.</p>
+
+{% if reports %}
+<table>
+  <thead>
+    <tr><th>Title / client</th><th>Type</th><th>Severity mix</th><th>Status</th><th>Updated</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for r in reports %}
+    <tr>
+      <td><a href="/reports/{{ r.id }}"><b>{{ r.title }}</b></a>
+        <div class="muted">{{ r.client }}</div></td>
+      <td>{{ r.template_type }}<div class="muted">{{ r.version }}</div></td>
+      <td>
+        {% if r.findings.total %}
+          {% if r.findings.critical %}<span class="badge sev-critical">{{ r.findings.critical }} crit</span>{% endif %}
+          {% if r.findings.high %}<span class="badge sev-high">{{ r.findings.high }} high</span>{% endif %}
+          {% if r.findings.medium %}<span class="badge sev-medium">{{ r.findings.medium }} med</span>{% endif %}
+          {% if r.findings.low %}<span class="badge sev-low">{{ r.findings.low }} low</span>{% endif %}
+          <span class="muted">· {{ r.findings.total }} total</span>
+        {% else %}
+          <span class="muted">no findings</span>
+        {% endif %}
+      </td>
+      <td>{{ r.status }}</td>
+      <td class="muted">{{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
+      <td>
+        <div class="flex">
+          <a class="btn small" href="/reports/{{ r.id }}">Edit</a>
+          <a class="btn small" href="/reports/{{ r.id }}/export?fmt=pdf">PDF</a>
+          <form action="/reports/{{ r.id }}/delete" method="post" onsubmit="return confirm('Delete this report?')">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card">
+  <p>No reports yet.</p>
+  <a class="btn primary" href="/reports/new">Create the first report</a>
+</div>
+{% endif %}
+{% endblock %}

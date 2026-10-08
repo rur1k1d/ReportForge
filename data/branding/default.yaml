@@ -1,0 +1,14 @@
+# Default branding block for report generation.
+# Any field can be overridden per-client in data/branding/<client>.yaml.
+company: "Pentest-IT"
+analyst: "Pentest-IT"
+logo: "" # path to an image file, or empty to skip the logo block
+accent_color: "#B22222" # dark red, matches the blog/brand
+address: ""
+website: ""
+
+# Pre-approved disclosure text pulled into the Executive Summary.
+disclaimer: |
+  This report contains confidential information prepared for the named
+  client. Distribution is limited to the client's authorized personnel and
+  the pentesting team. Do not share results publicly without written consent.

@@ -1,0 +1,66 @@
+# Reusable finding library. Every finding is a self-contained YAML item in the
+# same shape ingest.from_yaml expects, so imports are copy-paste ready.
+# Risk scores are examples of the calculation anchors we teach in reports:
+# likelihood x impact per vector.
+
+- title: Reflected XSS in web application
+  severity: medium
+  cwe: CWE-79
+  asset: https://app.example.com/search
+  impact: Session theft or phishing possible if an attacker crafts a link
+  recommendation: Encode all dynamic output in the HTML context; add CSP; test
+    with a browser automation suite before each release.
+  evidence: |
+    GET /search?q=<script>alert(document.cookie)</script>
+    -> 200 OK, payload reflected unescaped in the response body.
+
+- title: SQL Injection in login endpoint
+  severity: high
+  cwe: CWE-89
+  asset: https://app.example.com/login
+  impact: Full database read, modification or deletion depending on permissions
+  recommendation: Use parameterized queries and an allowlist input validator;
+    restrict the application database account to least privilege.
+  evidence: |
+    POST /login  username=' OR '1'='1'--  returned a 200 and logged in as admin.
+
+- title: Missing Content-Security-Policy header
+  severity: low
+  cwe: CWE-693
+  asset: https://app.example.com/
+  impact: Reduces depth of defense against stored/reflected XSS payloads
+  recommendation: Add a CSP header allowing only same-origin scripts and styles;
+    tighten after testing.
+  evidence: |
+    HTTP response for / lacks Content-Security-Policy and X-Content-Type-Options.
+    curl -sI https://app.example.com/ | grep -i content-security
+
+- title: Unrestricted file upload
+  severity: high
+  cwe: CWE-434
+  asset: https://app.example.com/upload
+  impact: Remote code execution potential if uploaded content is served/executed
+  recommendation: Validate extension + MIME server-side, store outside the web
+    root, serve with Content-Disposition attachment when possible.
+  evidence: |
+    Uploaded test.txt.php was stored under /uploads and served with text/html.
+
+- title: Missing rate limiting on API
+  severity: medium
+  cwe: CWE-307
+  asset: https://app.example.com/api/v1/
+  impact: Credential stuffing and enumeration become practical
+  recommendation: Enforce per-IP and per-account rate limits, add lockout with
+    exponential backoff, alert on bursts.
+  evidence: |
+    A single source sent 1,000 login attempts in 60s; all returned 200.
+
+- title: Default credentials on admin portal
+  severity: high
+  cwe: CWE-1188
+  asset: https://app.example.com/admin
+  impact: Direct administrative access; full compromise of the portal
+  recommendation: Enforce password change on first login, block known default
+    pairs, enable MFA for all admin accounts.
+  evidence: |
+    admin / admin accepted and granted access to the user database.

@@ -1,0 +1,74 @@
+# Smart Context: per-vector insights for the executive summary.
+# v1 is rule-based only. Each vector maps tags/finding titles to a short,
+# pre-approved insight. Keys are lowercase; matching is substring-based.
+#
+# Ollama/mistral summarization is a possible improvement, tracked in the
+# project TODO: NOT part of this file.
+
+vectors:
+  - id: webapp
+    label: "Web application"
+    keywords: [xss, sqli, sql injection, csrf, ssti, lfi, rfi, csp, ssl, tls,
+                header, cookie, rest, api, jwt, deserialization, open redirect,
+                broken access control, information disclosure]
+    insight: |
+      Issues found in the web layer most often result from missing or
+      misconfigured security controls (output encoding, access checks,
+      transport security). Remediation is usually quick once each finding is
+      triaged; the highest value is in closing the gaps with the greatest
+      business impact first.
+
+  - id: ad
+    label: "Active Directory"
+    keywords: [kerberos, adcs, golden, asrep, kerberoast, passthehash, pass-the-hash,
+               delegation, dcsync, ldap, smb, netntlm, ntlm, gpo, ace, dacl,
+               certificate services, bloodhound]
+    insight: |
+      Active Directory findings point to identity and trust issues: weak
+      authentication, over-permissive delegation, or insecure certificate
+      configuration. Because one compromise often chain-reacts across the
+      domain, treat high/critical AD items as priority fixes before any
+      periodic password resets.
+
+  - id: cloud
+    label: "Cloud infrastructure"
+    keywords: [s3, bucket, iam, eks, ecr, lambda, azure, gcp, managed, access key,
+               bucket policy, terraform, cloudfront, security group]
+    insight: |
+      Cloud findings usually stem from exposed storage, over-broad IAM
+      policies, or public network rules. Clean up permissions and review
+      configuration snapshots as a first step; most cloud issues resolve
+      faster than on-prem equivalents.
+
+  - id: infrastructure
+    label: "Network infrastructure"
+    keywords: [tls, certifificate, ssl, port, nmap, banner, ssh, rdp, vnc, snmp,
+               smb signing, ftp, telnet, cve-20, outdated, aging, deprecated]
+    insight: |
+      Infrastructure findings concern transport security, service exposure
+      and outdated components. Prioritize anything directly reachable from
+      the internet; internal-only findings can be scheduled in routine
+      maintenance windows.
+
+  - id: supplychain
+    label: "Supply chain and dependencies"
+    keywords: [dependency, library, npm, packagelock, pip, gem, composer, cve-20,
+               //high, sbt, gradle]
+    insight: |
+      Findings in dependencies are common and usually low-effort to fix by
+      upgrading to a patched version. Keep a dependency update cadence in
+      place to avoid accumulating exposure.
+
+  - id: process
+    label: "Process and policy"
+    keywords: [password policy, mfa, 2fa, backup, patching, monitoring, logging,
+               incident, flag, secure config]
+    insight: |
+      A subset of findings is not technical but procedural. Fixing these
+      requires a policy change and stakeholder buy-in; embed them in the
+      next security hardening cycle.
+
+fallback: |
+  Findings cover multiple areas. No single dominant theme stood out, so the
+  remediation plan should spread across technical patches and process
+  improvements. Review each severity group separately, highest first.

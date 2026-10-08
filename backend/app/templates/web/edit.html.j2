@@ -1,0 +1,255 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ report.title }}{% endblock %}
+{% block content %}
+{% if note %}<div class="note">{{ note }}</div>{% endif %}
+{% if saved_note %}<div class="note">{{ saved_note }}</div>{% endif %}
+
+<div class="flex" style="justify-content:space-between;">
+  <h1>{{ report.title }}</h1>
+  <div class="flex" style="align-items:center;">
+    <a class="btn small" href="/reports/{{ report.id }}/export?fmt=html">HTML</a>
+    <a class="btn small" href="/reports/{{ report.id }}/export?fmt=pdf">PDF</a>
+    <a class="btn small" href="/reports/{{ report.id }}/export?fmt=docx">DOCX</a>
+  </div>
+</div>
+<p class="muted">#{{ report.id }} · {{ report.template_type }} · {{ report.version }} ·
+  created {{ report.created_at.strftime("%Y-%m-%d") }}</p>
+
+<form method="post" action="/reports/{{ report.id }}">
+  <div class="grid2">
+    <div>
+      <label>Title</label>
+      <input type="text" name="title" value="{{ report.title }}" required>
+    </div>
+    <div>
+      <label>Client</label>
+      <input type="text" name="client" value="{{ report.client }}">
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <label>Scope</label>
+      <input type="text" name="scope" value="{{ report.scope }}">
+    </div>
+    <div>
+      <label>Version</label>
+      <input type="text" name="version" value="{{ report.version }}">
+    </div>
+  </div>
+  <label>Executive summary (overrides generated one)</label>
+  <textarea name="summary" rows="3">{{ report.summary }}</textarea>
+  <label>Methodology</label>
+  <textarea name="methodology" rows="3">{{ report.methodology }}</textarea>
+  <div class="grid2" style="margin-top:8px;">
+    <div>
+      <label>Status</label>
+      <select name="status">
+        {% for s in ["draft", "ready", "final"] %}
+        <option value="{{ s }}" {% if report.status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Branding</label>
+      <select name="branding_ref">
+        {% for b in branding_names %}
+        <option value="{{ b }}" {% if report.branding_ref == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <button class="btn primary" type="submit">Save report</button>
+  </div>
+</form>
+
+<!-- ============================== SMART CONTEXT ============================== -->
+<h2>Smart Context <span class="muted"></span></h2>
+{% if smart %}
+<div class="card">
+  {% if smart.vector_label %}
+  <p><b>Dominant theme:</b> {{ smart.vector_label }}</p>
+  <p>{{ smart.vector_insight }}</p>
+  {% if smart.unique_titles %}
+  <p class="muted">Matched findings: {{ smart.unique_titles | join("; ") }}</p>
+  {% endif %}
+  {% else %}
+  <p class="muted">No finding matches a vector. Insight not applicable.</p>
+  {% endif %}
+  {% if smart.trends %}
+  <p class="muted">CVE trend:
+    {% for t in smart.trends %}{{ t.year }} ({{ t.count }}): {{ t.cves | join(", ") }}. {% endfor %}
+  </p>
+  {% endif %}
+  {% if smart.top_cwes %}
+  <p class="muted">Top CWEs:
+    {% for t in smart.top_cwes %}{{ t.cwe }} ({{ t.count }}){% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+</div>
+{% else %}
+<div class="card">
+  <p class="muted">Rule-based analysis of the findings: dominant vector, short insight, CVE trends, top CWEs.</p>
+  <form method="post" action="/reports/{{ report.id }}/smart-context">
+    <button class="btn" type="submit">Generate smart context</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- ============================== FINDINGS ============================== -->
+<div id="findings"></div>
+<h2>Findings</h2>
+
+<div class="card">
+  <details>
+    <summary class="btn" style="cursor:pointer;">+ Add finding manually</summary>
+    <form method="post" action="/reports/{{ report.id }}/findings/add" style="margin-top:12px;">
+      <div class="grid2">
+        <div>
+          <label>Title</label>
+          <input type="text" name="title" required>
+        </div>
+        <div>
+          <label>Severity</label>
+          <select name="severity">
+            {% for s in ["critical", "high", "medium", "low", "info"] %}
+            <option value="{{ s }}" {% if s == "medium" %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Asset</label>
+          <input type="text" name="asset">
+        </div>
+        <div>
+          <label>CWE</label>
+          <input type="text" name="cwe" placeholder="CWE-79">
+        </div>
+      </div>
+      <label>Description</label>
+      <textarea name="description" rows="2"></textarea>
+      <div class="grid2">
+        <div>
+          <label>Impact</label>
+          <textarea name="impact" rows="2"></textarea>
+        </div>
+        <div>
+          <label>Recommendation</label>
+          <textarea name="recommendation" rows="2"></textarea>
+        </div>
+      </div>
+      <label>Evidence</label>
+      <textarea name="evidence" rows="3" placeholder="HTTP request / output"> </textarea>
+      <div style="margin-top:10px;">
+        <button class="btn primary" type="submit">Add finding</button>
+      </div>
+    </form>
+  </details>
+</div>
+
+{% if findings %}
+<table>
+  <thead>
+    <tr><th>Severity</th><th>Title</th><th>Asset</th><th>CWE/CVE</th><th>Source</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for f in findings %}
+    <tr class="finding-row">
+      <td><span class="badge sev-{{ f.severity }}">{{ f.severity }}</span></td>
+      <td><b>{{ f.title }}</b>
+        {% if f.evidence %}
+        <details class="muted"><summary>evidence</summary><div class="ev">{{ f.evidence }}</div></details>
+        {% endif %}
+      </td>
+      <td class="muted">{{ f.asset }}</td>
+      <td class="muted">{{ f.cwe }}{% if f.cve %} · {{ f.cve }}{% endif %}</td>
+      <td class="muted">{{ f.source }}</td>
+      <td>
+        <details class="muted">
+          <summary style="cursor:pointer;color:var(--accent);">edit</summary>
+          <form method="post" action="/findings/{{ f.id }}/update" style="margin-top:8px;min-width:480px;" class="card">
+            <div class="grid2">
+              <div>
+                <label>Title</label>
+                <input type="text" name="title" value="{{ f.title }}" required>
+              </div>
+              <div>
+                <label>Severity</label>
+                <select name="severity">
+                  {% for s in ["critical", "high", "medium", "low", "info"] %}
+                  <option value="{{ s }}" {% if f.severity == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="grid2">
+              <div>
+                <label>Asset</label>
+                <input type="text" name="asset" value="{{ f.asset }}">
+              </div>
+              <div>
+                <label>CWE</label>
+                <input type="text" name="cwe" value="{{ f.cwe }}">
+              </div>
+            </div>
+            <label>Description</label>
+            <textarea name="description" rows="2">{{ f.description }}</textarea>
+            <div class="grid2">
+              <div>
+                <label>Impact</label>
+                <textarea name="impact" rows="2">{{ f.impact }}</textarea>
+              </div>
+              <div>
+                <label>Recommendation</label>
+                <textarea name="recommendation" rows="2">{{ f.recommendation }}</textarea>
+              </div>
+            </div>
+            <label>Evidence</label>
+            <textarea name="evidence" rows="3">{{ f.evidence }}</textarea>
+            <div style="margin-top:10px;" class="flex">
+              <button class="btn primary" type="submit">Save finding</button>
+            </div>
+          </form>
+        </details>
+        <form action="/findings/{{ f.id }}/delete" method="post"
+              onsubmit="return confirm('Delete this finding?')">
+          <button class="btn small danger" type="submit" style="margin-top:4px;">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No findings yet. Import them below or add one at a time.</p>
+{% endif %}
+
+<!-- ============================== IMPORT ============================== -->
+<h2>Import</h2>
+<div class="card">
+  <p class="muted">Paste findings from bb_workflow report.json, nuclei JSONL output, Burp Suite XML, or a manual YAML list.</p>
+  <form method="post" action="/reports/{{ report.id }}/import">
+    <label>Source type</label>
+    <select name="source_type">
+      <option value="auto">Auto-detect</option>
+      <option value="yaml">YAML (manual list)</option>
+      <option value="nuclei">nuclei JSONL</option>
+      <option value="bb_workflow">bb_workflow report.json</option>
+      <option value="burp">Burp Suite XML</option>
+    </select>
+    <label>Content</label>
+    <textarea name="content" rows="8" placeholder="- title: Broken access control&#10;  severity: high&#10;  asset: /admin&#10;  description: ...&#10;  recommendation: ...&#10;"></textarea>
+    <div style="margin-top:10px;">
+      <label style="display:inline; font-size:13px; text-transform:none; letter-spacing:0;">
+        <input type="checkbox" name="dedupe" value="true"> Skip findings already present (by title + asset)
+      </label>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn primary" type="submit">Import findings</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
