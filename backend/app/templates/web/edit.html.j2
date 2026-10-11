@@ -10,6 +10,7 @@
     <a class="btn small" href="/reports/{{ report.id }}/export?fmt=html">HTML</a>
     <a class="btn small" href="/reports/{{ report.id }}/export?fmt=pdf">PDF</a>
     <a class="btn small" href="/reports/{{ report.id }}/export?fmt=docx">DOCX</a>
+    <a class="btn small" href="/reports/{{ report.id }}/export?fmt=md">MD</a>
   </div>
 </div>
 <p class="muted">#{{ report.id }} · {{ report.template_type }} · {{ report.version }} ·
@@ -128,6 +129,12 @@
           <input type="text" name="cwe" placeholder="CWE-79">
         </div>
       </div>
+      <div class="grid2">
+        <div>
+          <label>CVSS</label>
+          <input type="text" name="cvss" placeholder="CVSS:3.1/AV:N/...">
+        </div>
+      </div>
       <label>Description</label>
       <textarea name="description" rows="2"></textarea>
       <div class="grid2">
@@ -192,6 +199,12 @@
               <div>
                 <label>CWE</label>
                 <input type="text" name="cwe" value="{{ f.cwe }}">
+              </div>
+            </div>
+            <div class="grid2">
+              <div>
+                <label>CVSS</label>
+                <input type="text" name="cvss" value="{{ f.cvss }}">
               </div>
             </div>
             <label>Description</label>

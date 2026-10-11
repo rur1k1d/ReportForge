@@ -21,7 +21,7 @@ class Report(Base):
     methodology: Mapped[str] = mapped_column(Text, default="")
     summary: Mapped[str] = mapped_column(Text, default="")  # exec summary (draft, editable)
     status: Mapped[str] = mapped_column(String(20), default="draft")  # draft | ready | final
-    version: Mapped[str] = mapped_column(String(20), default="v0.1")
+    version: Mapped[str] = mapped_column(String(20), default="v0.2")
     branding_ref: Mapped[str] = mapped_column(String(120), default="default")
     smart_context_json: Mapped[str] = mapped_column(Text, default="")  # serialized insights
     created_at: Mapped[datetime] = mapped_column(

@@ -77,6 +77,12 @@ def test_render_html(report, db_session):
     assert "Content-Security-Policy" in html
 
 
+def test_render_html_top_cwes(report, db_session):
+    html = exporter.render_html(report, report.findings, "default")
+    assert "Common weaknesses" in html
+    assert "CWE-79" in html
+
+
 def test_export_html_file(report, db_session, tmp_path):
     out = exporter.export_html(report, report.findings, tmp_path / "report.html")
     assert out.exists()
@@ -93,3 +99,18 @@ def test_export_docx(report, db_session, tmp_path):
     out = exporter.export_docx(report, report.findings, tmp_path / "report.docx")
     assert out.exists()
     assert out.stat().st_size > 500
+
+
+def test_export_markdown(report, db_session):
+    md = exporter.render_markdown(report, report.findings, "default")
+    # structural sections
+    for section in ("# Pentest Report", "## Executive Summary",
+                    "## Findings Overview", "## Findings Detail"):
+        assert section in md
+    # severity table renders a row
+    assert "| Severity | Count |" in md
+    assert "| High | 1 |" in md
+    # per-finding content present
+    assert "Reflected XSS in search" in md
+    assert "### Missing CSP header" in md
+    assert "HTML-encode output." in md

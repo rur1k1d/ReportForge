@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.routes import router as api_router
 from .core.database import init_db
+from .core import config
 from .web import router as web_router
 
 
@@ -21,11 +22,11 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="ReportForge", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="ReportForge", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # local-only tool; tighten if exposed
+    allow_origins=config.CORS_ORIGINS,  # local-only default; override via REPORTFORGE_ORIGINS
     allow_methods=["*"],
     allow_headers=["*"],
 )

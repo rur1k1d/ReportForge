@@ -11,6 +11,7 @@ class FindingIn(BaseModel):
     """Payload for creating/updating a single finding."""
     title: str = Field(..., min_length=1, max_length=200)
     severity: str = "medium"
+    cvss: str = ""
     description: str = ""
     impact: str = ""
     recommendation: str = ""
@@ -39,7 +40,7 @@ class ReportIn(BaseModel):
     methodology: str = ""
     summary: str = ""
     status: str = "draft"
-    version: str = "v0.1"
+    version: str = "v0.2"
     branding_ref: str = "default"
 
 
@@ -56,7 +57,4 @@ class ImportRequest(BaseModel):
     source_type: str = Field("auto", pattern="^(auto|yaml|nuclei|bb_workflow|burp)$")
     content: str = Field(..., min_length=1)
     source_label: str = ""
-
-
-class SmartContextRequest(BaseModel):
-    findings: list[FindingIn] = []
+    dedupe: bool = False

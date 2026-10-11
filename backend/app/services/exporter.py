@@ -100,3 +100,100 @@ def export_html(report, findings, out: Path, branding_ref: str = "default") -> P
     """Write the rendered HTML to disk (static view / pandoc input)."""
     html = render_html(report, findings, branding_ref)
     return _write(out, html)
+
+
+# ---------------------------------------------------------------- markdown ---
+
+
+def render_markdown(report, findings, branding_ref: str = "default") -> str:
+    """Native Markdown rendering (no pandoc dependency).
+
+    Mirrors the HTML report structure: title + meta, executive summary,
+    severity counts, per-finding sections grouped high->info.
+    """
+    from .renderer import stats, exec_summary_text
+
+    st = stats(findings)
+    severity_order = ["critical", "high", "medium", "low", "info"]
+    lines: list[str] = []
+
+    lines.append(f"# {report.title}")
+    lines.append("")
+    lines.append(f"- **Client:** {report.client}")
+    lines.append(f"- **Scope:** {report.scope or '—'}")
+    lines.append(
+        f"- **Template:** {report.template_type} | **Version:** {report.version}"
+    )
+    if getattr(report, "updated_at", None):
+        lines.append(
+            f"- **Generated:** {report.updated_at.strftime('%Y-%m-%d')}"
+        )
+    lines.append("")
+
+    summary = (getattr(report, "summary", "") or "").strip() or exec_summary_text(
+        report, st
+    )
+    lines.append("## Executive Summary")
+    lines.append("")
+    lines.append(summary)
+    lines.append("")
+
+    lines.append("## Findings Overview")
+    lines.append("")
+    lines.append("| Severity | Count |")
+    lines.append("|---|---|")
+    for sev in severity_order:
+        count = st["counts"].get(sev, 0)
+        lines.append(f"| {sev.capitalize()} | {count} |")
+    lines.append("")
+
+    if report.methodology:
+        lines.append("## Methodology")
+        lines.append("")
+        lines.append(report.methodology)
+        lines.append("")
+
+    lines.append("## Findings Detail")
+    lines.append("")
+    if findings:
+        for sev in severity_order:
+            items = [f for f in findings if f.severity == sev]
+            if not items:
+                continue
+            for f in sorted(items, key=lambda x: x.title.lower()):
+                lines.append(f"### {f.title} `{sev}`")
+                lines.append("")
+                if f.cvss or f.cwe or f.cve:
+                    lines.append("| Reference | Value |")
+                    lines.append("|---|---|")
+                    if f.cvss:
+                        lines.append(f"| CVSS | {f.cvss} |")
+                    if f.cwe:
+                        lines.append(f"| CWE | CWE-{f.cwe} |")
+                    if f.cve:
+                        lines.append(f"| CVE | {f.cve} |")
+                    lines.append("")
+                if f.asset:
+                    lines.append(f"**Asset:** {f.asset}")
+                    lines.append("")
+                if f.description:
+                    lines.append(f"**Description.** {f.description}")
+                    lines.append("")
+                if f.impact:
+                    lines.append(f"**Impact.** {f.impact}")
+                    lines.append("")
+                if f.evidence:
+                    lines.append("**Evidence:**")
+                    lines.append("")
+                    lines.append("```")
+                    lines.append(f.evidence)
+                    lines.append("```")
+                    lines.append("")
+                if f.recommendation:
+                    lines.append(f"**Recommendation.** {f.recommendation}")
+                    lines.append("")
+    else:
+        lines.append("*No findings recorded.*")
+        lines.append("")
+
+    return "\n".join(lines)

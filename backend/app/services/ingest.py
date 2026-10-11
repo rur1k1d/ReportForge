@@ -28,6 +28,7 @@ class RawFinding:
 
     title: str
     severity: str
+    cvss: str = ""
     description: str = ""
     impact: str = ""
     recommendation: str = ""
@@ -55,6 +56,34 @@ def normalize_severity(value: str) -> str:
     Returns the canonical value or ``"medium"`` if unknown (never fails).
     """
     return SEVERITY_ALIASES.get(value.strip().lower(), "medium")
+
+
+def existing_keys(findings) -> set[tuple[str, str]]:
+    """(title, asset) pairs already stored on a report (for de-duplication)."""
+    return {
+        (f.title.strip().lower(), (f.asset or "").strip().lower())
+        for f in findings
+    }
+
+
+def dedupe_raw(
+    raw: list["RawFinding"], keys: set[tuple[str, str]]
+) -> tuple[list["RawFinding"], int]:
+    """Drop findings whose (title, asset) key is already in ``keys``.
+
+    Returns (kept, skipped). ``keys`` is updated in place with the kept
+    findings so later batches in the same import also see them.
+    """
+    kept: list[RawFinding] = []
+    skipped = 0
+    for rf in raw:
+        key = (rf.title.strip().lower(), (rf.asset or "").strip().lower())
+        if key in keys:
+            skipped += 1
+            continue
+        keys.add(key)
+        kept.append(rf)
+    return kept, skipped
 
 
 # ----------------------------------------------------------- decode: YAML ---
@@ -93,6 +122,7 @@ def from_yaml(text: str, source: str = "manual") -> Iterable[RawFinding]:
         f = RawFinding(
             title=str(item.get("title", "Untitled finding")).strip(),
             severity=str(item.get("severity", "medium")).strip(),
+            cvss=str(item.get("cvss", "") or "").strip(),
             description=_clean_yaml(item.get("description")),
             impact=_clean_yaml(item.get("impact")),
             recommendation=_clean_yaml(item.get("recommendation")),
@@ -102,7 +132,6 @@ def from_yaml(text: str, source: str = "manual") -> Iterable[RawFinding]:
             mitre=str(item.get("mitre", "")).strip(),
             asset=str(item.get("asset", "")).strip(),
             source=source,
-            extra={"cvss": item.get("cvss") or ""},
         )
         if f.title and f.title != "Untitled finding":
             yield f
@@ -124,23 +153,29 @@ def from_nuclei_jsonl(text: str) -> Iterable[RawFinding]:
         info = obj.get("info") or {}
         if not info.get("name"):
             continue
+        classification = info.get("classification") or {}
+        cvss_metrics = classification.get("cvss-metrics", [])
+        if isinstance(cvss_metrics, list):
+            cvss = ", ".join(str(x) for x in cvss_metrics)
+        else:
+            cvss = str(cvss_metrics or "")
         yield RawFinding(
             title=str(info.get("name", "nuclei finding")).strip(),
             severity=str(info.get("severity", "medium")).strip(),
+            cvss=cvss,
             description=str(info.get("description", "")).strip(),
             recommendation=str(
                 info.get("remediation", info.get("recommendation", ""))
             ).strip(),
             evidence=str(obj.get("matched-at", "")).strip(),
-            cve=", ".join(info.get("classification", {}).get("cve-id", []))
-            if isinstance(info.get("classification", {}).get("cve-id"), list)
-            else str(info.get("classification", {}).get("cve-id", "")),
-            cwe=", ".join(info.get("classification", {}).get("cwe-id", []))
-            if isinstance(info.get("classification", {}).get("cwe-id"), list)
-            else str(info.get("classification", {}).get("cwe-id", "")),
+            cve=", ".join(classification.get("cve-id", []))
+            if isinstance(classification.get("cve-id"), list)
+            else str(classification.get("cve-id", "")),
+            cwe=", ".join(classification.get("cwe-id", []))
+            if isinstance(classification.get("cwe-id"), list)
+            else str(classification.get("cwe-id", "")),
             asset=str(obj.get("host", obj.get("matched-at", ""))).strip(),
             source="nuclei",
-            extra={"template": info.get("tags", [])},
         )
 
 
@@ -160,10 +195,17 @@ def from_bb_workflow(obj: dict) -> tuple[Iterable[RawFinding], dict]:
         info = v.get("info") or {}
         if not info.get("name"):
             continue
+        classification = info.get("classification") or {}
+        cvss_metrics = classification.get("cvss-metrics", [])
+        if isinstance(cvss_metrics, list):
+            cvss = ", ".join(str(x) for x in cvss_metrics)
+        else:
+            cvss = str(cvss_metrics or "")
         findings.append(
             RawFinding(
                 title=str(info.get("name", "nuclei finding")).strip(),
                 severity=str(info.get("severity", "medium")).strip(),
+                cvss=cvss,
                 description=str(info.get("description", "")).strip(),
                 recommendation=str(
                     info.get("remediation", info.get("recommendation", ""))
@@ -171,7 +213,6 @@ def from_bb_workflow(obj: dict) -> tuple[Iterable[RawFinding], dict]:
                 evidence=str(v.get("matched-at", "")).strip(),
                 asset=str(v.get("host", target or "")).strip(),
                 source="bb_workflow",
-                extra={"template": info.get("tags", [])},
             )
         )
     context = {

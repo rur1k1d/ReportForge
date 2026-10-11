@@ -107,7 +107,7 @@ def build_context(report, findings, branding_ref: str = "default") -> dict[str, 
         "severity_rows": rows,
         "summary": summary,
         "smart": smart,
-        "generator": f"ReportForge (legacy build)",
+        "generator": f"ReportForge v0.2",
     }
 
 

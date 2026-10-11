@@ -13,6 +13,7 @@ keywords, insight) plus a fallback paragraph.
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -33,6 +34,17 @@ class SmartContext:
                 data = yaml.safe_load(fh) or {}
             self.vectors = data.get("vectors", [])
             self.fallback = data.get("fallback", "")
+
+    def serialize(self, ctx: dict[str, Any]) -> str:
+        """JSON string for the ``smart_context_json`` column (datetimes safe)."""
+        return json.dumps(ctx, ensure_ascii=False, default=str)
+
+    def build_and_persist(self, report, findings, db) -> dict[str, Any]:
+        """Build the smart context, cache it on the report row, commit."""
+        ctx = self.build(report, findings)
+        report.smart_context_json = self.serialize(ctx)
+        db.commit()
+        return ctx
 
     # ------------------------------------------------------------- matching
 

@@ -22,7 +22,7 @@ from .core.database import get_session
 from .models import Finding, Report
 from .services import exporter
 from .services.branding import available_branding
-from .services.ingest import parse_findings
+from .services.ingest import dedupe_raw, existing_keys, parse_findings
 from .services.smart_context import SmartContext
 
 router = APIRouter()
@@ -49,10 +49,7 @@ def _get_report(db: Db, report_id: int) -> Report:
 
 def _finding_keys(report: Report) -> set[tuple[str, str]]:
     """Existing (title, asset) pairs for de-duplication."""
-    return {
-        (f.title.strip().lower(), (f.asset or "").strip().lower())
-        for f in report.findings
-    }
+    return existing_keys(report.findings)
 
 
 def _findings_summary(findings: list) -> dict:
@@ -101,7 +98,7 @@ def create_report(
     template_type: str = Form("pentest"),
     client: str = Form(""),
     scope: str = Form(""),
-    version: str = Form("v0.1"),
+    version: str = Form("v0.2"),
 ):
     report = Report(
         title=title,
@@ -138,7 +135,7 @@ def update_report(
     summary: str = Form(""),
     methodology: str = Form(""),
     status: str = Form("draft"),
-    version: str = Form("v0.1"),
+    version: str = Form("v0.2"),
     branding_ref: str = Form("default"),
 ):
     report = _get_report(db, report_id)
@@ -181,20 +178,16 @@ def import_page(
         raw = []
         note = f"Import failed: {exc}"
     existing_keys = _finding_keys(report) if dedupe else set()
-    dupes_skipped = 0
+    if dedupe:
+        raw, dupes_skipped = dedupe_raw(raw, existing_keys)
+    else:
+        dupes_skipped = 0
     for rf in raw:
-        key = (
-            rf.title.strip().lower(),
-            (rf.asset or "").strip().lower(),
-        )
-        if key in existing_keys:
-            dupes_skipped += 1
-            continue
-        existing_keys.add(key)
         db.add(Finding(
             report=report,
             title=rf.title,
             severity=rf.canonical_severity(),
+            cvss=rf.cvss,
             description=rf.description,
             impact=rf.impact,
             recommendation=rf.recommendation,
@@ -205,7 +198,7 @@ def import_page(
             asset=rf.asset,
             source=rf.source,
         ))
-    added = len(raw) - dupes_skipped
+    added = len(raw)
     if added and not note:
         note = f"Imported {added} finding(s)"
         if dupes_skipped:
@@ -235,6 +228,7 @@ def add_finding_web(
     severity: str = Form("medium"),
     asset: str = Form(""),
     cwe: str = Form(""),
+    cvss: str = Form(""),
     description: str = Form(""),
     impact: str = Form(""),
     recommendation: str = Form(""),
@@ -245,6 +239,7 @@ def add_finding_web(
         report=report,
         title=title.strip(),
         severity=severity,
+        cvss=cvss.strip(),
         asset=asset.strip(),
         cwe=cwe.strip(),
         description=description,
@@ -266,6 +261,7 @@ def update_finding_web(
     severity: str = Form("medium"),
     asset: str = Form(""),
     cwe: str = Form(""),
+    cvss: str = Form(""),
     description: str = Form(""),
     impact: str = Form(""),
     recommendation: str = Form(""),
@@ -276,6 +272,7 @@ def update_finding_web(
         raise HTTPException(status_code=404, detail="finding not found")
     finding.title = title.strip()
     finding.severity = severity
+    finding.cvss = cvss.strip()
     finding.asset = asset.strip()
     finding.cwe = cwe.strip()
     finding.description = description
@@ -312,6 +309,12 @@ def export_web(report_id: int, db: Db, fmt: str = "html"):
         return FileResponse(str(out), media_type="text/html; charset=utf-8",
                             filename=f"{report.title.replace(' ', '_')}.html",
                             background=cleanup)
+    if fmt == "md":
+        out.write_text(exporter.render_markdown(report, findings),
+                       encoding="utf-8")
+        return FileResponse(str(out), media_type="text/markdown; charset=utf-8",
+                            filename=f"{report.title.replace(' ', '_')}.md",
+                            background=cleanup)
     if fmt == "pdf":
         exporter.export_pdf(report, findings, out)
         return FileResponse(str(out), media_type="application/pdf",
@@ -332,7 +335,7 @@ def export_web(report_id: int, db: Db, fmt: str = "html"):
 @router.post("/reports/{report_id}/smart-context", response_class=HTMLResponse)
 def smart_web(report_id: int, db: Db, request: Request):
     report = _get_report(db, report_id)
-    ctx = SmartContext().build(report, list(report.findings))
+    ctx = SmartContext().build_and_persist(report, list(report.findings), db)
     return _page(
         "edit.html.j2",
         request,

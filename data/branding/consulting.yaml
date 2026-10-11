@@ -1,0 +1,6 @@
+# Consulting branding theme — light neutral palette (navy/teal accent).
+# Only overrides the fields that differ from default.yaml; the rest merges in.
+company: "Consulting Co."
+accent_color: "#1F4E5F"
+address: ""
+website: ""

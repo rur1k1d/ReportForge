@@ -5,11 +5,23 @@ Paths are resolved relative to the repository root (the folder that contains
 This keeps the project runnable from anywhere.
 """
 
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
 # backend/app/core/config.py -> repo root is three levels up
 APP_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 REPO_ROOT = APP_DIR.parent  # ReportForge_Project/
+
+# Local-only by default. Set REPORTFORGE_ORIGINS to a comma-separated list of
+# allowed origins (e.g. "http://localhost:3000,http://192.168.1.10:8000")
+# when the API is used from a different origin.
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("REPORTFORGE_ORIGINS", "http://127.0.0.1:8000").split(",")
+    if o.strip()
+]
 
 # project-wide dirs (declared here so they can be overridden in tests)
 DATA_DIR = REPO_ROOT / "data"

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ReportForge headless CLI — callable from any directory.
+# Resolves the project root through symlinks, then runs the venv Python with
+# the backend/ dir on PYTHONPATH.
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+PROJECT_ROOT="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+
+export PYTHONPATH="$PROJECT_ROOT/backend${PYTHONPATH:+:$PYTHONPATH}"
+
+PY="$PROJECT_ROOT/.venv/bin/python"
+if [ ! -x "$PY" ]; then
+  PY="$(command -v python3)"
+fi
+
+exec "$PY" -m app.cli "$@"

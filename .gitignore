@@ -11,6 +11,9 @@ data/reportforge.db
 *.db
 *.db-journal
 
+# Generated report exports
+exports/
+
 # OS
 .DS_Store
 

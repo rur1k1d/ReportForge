@@ -13,6 +13,10 @@ from app.core import config as cfg  # noqa: E402
 cfg.DB_PATH = Path(tempfile.mkdtemp()) / "test_web.db"  # type: ignore[misc]
 
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+
+from app.core.database import engine  # noqa: E402
+from app.models import Report  # noqa: E402
 from app.main import app  # noqa: E402
 
 
@@ -75,6 +79,11 @@ def test_smart_context_web(client):
     r = client.post(f"/reports/{rid}/smart-context")
     assert r.status_code == 200
     assert "webapp" in r.text.lower() or "Web application" in r.text
+    # smart context is persisted on the report row
+    with Session(engine) as s:
+        row = s.get(Report, int(rid))
+        assert row.smart_context_json
+        assert "webapp" in row.smart_context_json
 
 
 def test_export_web(client):

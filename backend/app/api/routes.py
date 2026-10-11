@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from ..core.database import get_session
 from ..models import Finding, Report
 from ..services import exporter
-from ..services.ingest import parse_findings
+from ..services.ingest import dedupe_raw, existing_keys, parse_findings
 from ..services.smart_context import SmartContext
 from . import schemas
 
@@ -126,11 +126,16 @@ def import_findings(report_id: int, payload: schemas.ImportRequest, db: Db):
         raise HTTPException(status_code=400, detail=str(exc))
 
     rows = []
+    findings = list(findings)
+    if payload.dedupe:
+        keys = existing_keys(report.findings)
+        findings, _skipped = dedupe_raw(findings, keys)
     for rf in findings:
         row = Finding(
             report=report,
             title=rf.title,
             severity=rf.canonical_severity(),
+            cvss=rf.cvss,
             description=rf.description,
             impact=rf.impact,
             recommendation=rf.recommendation,
@@ -157,7 +162,7 @@ _TEMPLATE_TYPES = {"pentest", "va"}
 def export_report(
     report_id: int,
     db: Db,
-    format: str = Query("html", pattern="^(html|pdf|docx)$"),
+    format: str = Query("html", pattern="^(html|pdf|docx|md)$"),
 ):
     """Export a report in the requested format."""
     report = _get_report(db, report_id)
@@ -171,6 +176,8 @@ def export_report(
         exporter.export_pdf(report, findings, out)
     elif format == "docx":
         exporter.export_docx(report, findings, out)
+    elif format == "md":
+        exporter._write(out, exporter.render_markdown(report, findings))
 
     return FileResponse(
         str(out),
@@ -184,6 +191,7 @@ def _media_type(fmt: str) -> str:
         "html": "text/html; charset=utf-8",
         "pdf": "application/pdf",
         "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "md": "text/markdown; charset=utf-8",
     }[fmt]
 
 
@@ -192,4 +200,4 @@ def _media_type(fmt: str) -> str:
 @router.get("/reports/{report_id}/smart-context")
 def report_smart_context(report_id: int, db: Db):
     report = _get_report(db, report_id)
-    return SmartContext().build(report, list(report.findings))
+    return SmartContext().build_and_persist(report, list(report.findings), db)
